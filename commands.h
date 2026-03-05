@@ -118,7 +118,9 @@ void runCommand(string command) {
     pid_t pid = fork();
     if (pid == 0) { //CHILD PROCESS
         if (execvp(args[0], args) < 0) {
-            //passing errno to parent process
+
+            //print error message if execvp fails and exit with error code
+            perror("Error executing command");
             exit(errno);
         }
     } else if(pid > 0) { //PARENT PROCESS
