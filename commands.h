@@ -4,8 +4,12 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <vector>
+#include <algorithm>
 #include <sstream>
 #include <cstring>
+#include <cctype>
+#include <dirent.h>
+#include <sys/types.h>
 
 using namespace std;
 
@@ -127,4 +131,32 @@ void runCommand(string command) {
         wait(NULL);
     } else cerr << "Error creating child process" << endl;
     
+}
+
+void ls(vector<string> args = {}) {
+
+    pid_t pid = fork();
+
+    if (pid == 0) {  // child process
+
+        vector<char*> cargs;
+
+        cargs.push_back((char*)"ls");
+
+        for (auto &arg : args)
+            cargs.push_back((char*)arg.c_str());
+
+        cargs.push_back(nullptr);
+
+        execvp("ls", cargs.data());
+
+        perror("execvp failed");
+        exit(1);
+    }
+    else if (pid > 0) { // parent
+        wait(nullptr);
+    }
+    else {
+        perror("fork failed");
+    }
 }
