@@ -1,2 +1,3 @@
-# assignment4_OS_Shell_Project
-Group project for Operating Systems. 
+# CS 442 Assignment 4: System Programming and Linux Shell
+Group project for Operating Systems.
+
