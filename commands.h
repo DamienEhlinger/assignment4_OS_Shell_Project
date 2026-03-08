@@ -134,26 +134,6 @@ void runCommand(string command) {
     
 }
 
-void ls(vector<string> args = {}) {
-
-    pid_t pid = fork();
-    if (pid == 0) {
-        vector<char*> cargs;
-        cargs.push_back((char*)"ls");
-        for (auto &arg : args)
-            cargs.push_back((char*)arg.c_str());
-        cargs.push_back(nullptr);
-        execvp("ls", cargs.data());
-        perror("execvp failed");
-        exit(1);
-    }
-    else if (pid > 0) {
-        wait(nullptr);
-    }
-    else {
-        perror("fork failed");
-    }
-}
 
 void runProgram(string command) {
     // split by '|'
