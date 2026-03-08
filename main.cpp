@@ -20,9 +20,13 @@ int main() {
             clear();
         } else if (command == "ls") {
             ls();
+<<<<<<< HEAD
         } else if (command.rfind("./", 0) == 0) {
             runProgram(command);
         } else {
+=======
+        }else {
+>>>>>>> dash
             runCommand(command);
         }
         

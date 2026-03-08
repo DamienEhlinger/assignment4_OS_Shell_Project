@@ -5,8 +5,12 @@
 #include <sys/wait.h>
 #include <vector>
 #include <algorithm>
+#include <algorithm>
 #include <sstream>
 #include <cstring>
+#include <cctype>
+#include <dirent.h>
+#include <sys/types.h>
 #include <cctype>
 #include <dirent.h>
 #include <sys/types.h>
@@ -232,4 +236,125 @@ void inputRirection(string command){
 
 void outputRirection(string command) {
 
+}
+
+void ls(vector<string> args = {}) {
+
+    pid_t pid = fork();
+    if (pid == 0) {
+        vector<char*> cargs;
+        cargs.push_back((char*)"ls");
+        for (auto &arg : args)
+            cargs.push_back((char*)arg.c_str());
+        cargs.push_back(nullptr);
+        execvp("ls", cargs.data());
+        perror("execvp failed");
+        exit(1);
+    }
+    else if (pid > 0) {
+        wait(nullptr);
+    }
+    else {
+        perror("fork failed");
+    }
+}
+
+
+void runProgram(string command) {
+
+    size_t pos = command.find('|');
+
+    string left = command.substr(0, pos);
+    string right = command.substr(pos + 1);
+
+    // tokenize left command
+    stringstream ss1(left);
+    vector<string> tokens1;
+    string temp;
+
+    while (ss1 >> temp)
+        tokens1.push_back(temp);
+
+    // tokenize right command
+    stringstream ss2(right);
+    vector<string> tokens2;
+
+    while (ss2 >> temp)
+        tokens2.push_back(temp);
+
+    // convert to char* arrays
+    vector<char*> args1;
+    vector<char*> args2;
+
+    for (auto &t : tokens1)
+        args1.push_back((char*)t.c_str());
+    args1.push_back(nullptr);
+
+    for (auto &t : tokens2)
+        args2.push_back((char*)t.c_str());
+    args2.push_back(nullptr);
+
+    int fd[2];
+    pipe(fd);
+
+    pid_t pid1 = fork();
+
+    if (pid1 == 0) {
+        close(fd[0]);
+        dup2(fd[1], STDOUT_FILENO);
+        close(fd[1]);
+
+        execvp(args1[0], args1.data());
+        perror("execvp failed");
+        exit(1);
+    }
+
+    waitpid(pid1, NULL, 0);
+
+    pid_t pid2 = fork();
+
+    if (pid2 == 0) {
+        close(fd[1]);
+        dup2(fd[0], STDIN_FILENO);
+        close(fd[0]);
+
+        execvp(args2[0], args2.data());
+        perror("execvp failed");
+        exit(1);
+    }
+
+    close(fd[0]);
+    close(fd[1]);
+
+    waitpid(pid2, NULL, 0);
+}
+
+
+void inputRirection(string command){
+
+}
+
+void outputRirection(string command) {
+
+}
+
+void ls(vector<string> args = {}) {
+
+    pid_t pid = fork();
+    if (pid == 0) {
+        vector<char*> cargs;
+        cargs.push_back((char*)"ls");
+        for (auto &arg : args)
+            cargs.push_back((char*)arg.c_str());
+        cargs.push_back(nullptr);
+        execvp("ls", cargs.data());
+        perror("execvp failed");
+        exit(1);
+    }
+    else if (pid > 0) {
+        wait(nullptr);
+    }
+    else {
+        perror("fork failed");
+    }
 }
