@@ -134,93 +134,95 @@ void runCommand(string command) {
     
 }
 
-void ls(vector<string> args = {}) {
-
-    pid_t pid = fork();
-    if (pid == 0) {
-        vector<char*> cargs;
-        cargs.push_back((char*)"ls");
-        for (auto &arg : args)
-            cargs.push_back((char*)arg.c_str());
-        cargs.push_back(nullptr);
-        execvp("ls", cargs.data());
-        perror("execvp failed");
-        exit(1);
-    }
-    else if (pid > 0) {
-        wait(nullptr);
-    }
-    else {
-        perror("fork failed");
-    }
-}
-
 
 void runProgram(string command) {
-
-    size_t pos = command.find('|');
-
-    string left = command.substr(0, pos);
-    string right = command.substr(pos + 1);
-
-    // tokenize left command
-    stringstream ss1(left);
-    vector<string> tokens1;
-    string temp;
-
-    while (ss1 >> temp)
-        tokens1.push_back(temp);
-
-    // tokenize right command
-    stringstream ss2(right);
-    vector<string> tokens2;
-
-    while (ss2 >> temp)
-        tokens2.push_back(temp);
-
-    // convert to char* arrays
-    vector<char*> args1;
-    vector<char*> args2;
-
-    for (auto &t : tokens1)
-        args1.push_back((char*)t.c_str());
-    args1.push_back(nullptr);
-
-    for (auto &t : tokens2)
-        args2.push_back((char*)t.c_str());
-    args2.push_back(nullptr);
-
-    int fd[2];
-    pipe(fd);
-
-    pid_t pid1 = fork();
-
-    if (pid1 == 0) {
-        close(fd[0]);
-        dup2(fd[1], STDOUT_FILENO);
-        close(fd[1]);
-
-        execvp(args1[0], args1.data());
-        perror("execvp failed");
-        exit(1);
+    // split by '|'
+    vector<string> parts;
+    {
+        string part;
+        stringstream s(command);
+        while (std::getline(s, part, '|')) {
+            // trim leading/trailing spaces
+            auto l = part.find_first_not_of(" \t\n\r");
+            if (l == string::npos) part = "";
+            else {
+                auto r = part.find_last_not_of(" \t\n\r");
+                part = part.substr(l, r - l + 1);
+            }
+            if (!part.empty()) parts.push_back(part);
+        }
     }
 
-    waitpid(pid1, NULL, 0);
+    if (parts.empty()) return;
 
-    pid_t pid2 = fork();
+    size_t n = parts.size();
 
-    if (pid2 == 0) {
-        close(fd[1]);
-        dup2(fd[0], STDIN_FILENO);
-        close(fd[0]);
-
-        execvp(args2[0], args2.data());
-        perror("execvp failed");
-        exit(1);
+    // tokenize each part
+    vector<vector<string>> tokens(n);
+    for (size_t i = 0; i < n; ++i) {
+        stringstream ss(parts[i]);
+        string t;
+        while (ss >> t) tokens[i].push_back(t);
     }
 
-    close(fd[0]);
-    close(fd[1]);
+    // prepare args pointers (they point into tokens strings, which stay alive)
+    vector<vector<char*>> args(n);
+    for (size_t i = 0; i < n; ++i) {
+        for (auto &s : tokens[i]) args[i].push_back((char*)s.c_str());
+        args[i].push_back(nullptr);
+    }
 
-    waitpid(pid2, NULL, 0);
+    // create pipes: we need n-1 pipes, each with 2 fds
+    vector<int> pipefds;
+    pipefds.resize((n > 0 ? n - 1 : 0) * 2);
+    for (size_t i = 0; i + 1 < n; ++i) {
+        if (pipe(&pipefds[i * 2]) < 0) {
+            perror("pipe");
+            return;
+        }
+    }
+
+    vector<pid_t> pids;
+    pids.reserve(n);
+
+    for (size_t i = 0; i < n; ++i) {
+        pid_t pid = fork();
+        if (pid < 0) {
+            perror("fork");
+            // close fds
+            for (int fd : pipefds) close(fd);
+            return;
+        }
+
+        if (pid == 0) {
+            // child
+            // if not first, set stdin to read end of previous pipe
+            if (i > 0) {
+                int read_fd = pipefds[(i - 1) * 2];
+                if (dup2(read_fd, STDIN_FILENO) < 0) { perror("dup2"); exit(1); }
+            }
+            // if not last, set stdout to write end of this pipe
+            if (i + 1 < n) {
+                int write_fd = pipefds[i * 2 + 1];
+                if (dup2(write_fd, STDOUT_FILENO) < 0) { perror("dup2"); exit(1); }
+            }
+
+            // close all pipe fds in child
+            for (int fd : pipefds) close(fd);
+
+            // exec
+            execvp(args[i][0], args[i].data());
+            perror("execvp failed");
+            exit(1);
+        }
+
+        // parent
+        pids.push_back(pid);
+    }
+
+    // parent closes all pipe fds
+    for (int fd : pipefds) close(fd);
+
+    // wait for all children
+    for (pid_t pid : pids) waitpid(pid, NULL, 0);
 }
