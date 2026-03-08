@@ -21,9 +21,9 @@ int main() {
         } else if (command == "ls") {
             ls();
         }else if (command.find("<") != string::npos){
-            inputRedirection(command);
+            inputRirection(command);
         }else if (command.find(">") != string::npos){
-            outputRedirection(command);
+            outputRirection(command);
         }
         else {
             runCommand(command);

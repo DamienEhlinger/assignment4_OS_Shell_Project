@@ -299,40 +299,75 @@ void inputRirection(string command){
     }
 }
 
+// function to handle output redirection using '>' operator in the command string
 void outputRirection(string command) {
-//step 1: parse the command to get the command to run and the file to write to
-    size_t pos = command.find('>'); // find the position of '>' in the command string
-    if (pos == string::npos){ //if '>' is not found in the comman string print an error message and return
+    //step 1: parse command into left side (program/args) and right side (output file)
+    size_t pos = command.find('>'); //find the position of '>' in the command string; if it is not found, print an error message and return
+    if (pos == string::npos) { //no output redirection found
         cerr << "Error: no output redirection found" << endl;
-        return;}
-        auto trim = [](const string &s) { //lamda function to trim leadin and trailing whitespace from a string
-            size_t start = s.find_first_not_of(" \t");
-            if (start == string::npos) return string("");
-            size_t end = s.find_last_not_of(" \t");
-            return s.substr(start, end - start + 1);
-        };
+        return;
+    }
 
-        //get the command to run and the file to write to by splitting the command string at '>' and trimming whitespace
-        string cmd = trim(command.substr(0, pos)); //get the command to run by taking the substring before '>' and trimming whitespace
-        string filename = trim(command.substr(pos + 1)); //get the file to write to by taking the substring after '>' and trimming whitespace
-        if (cmd.empty() || filename.empty()) { //if either the command or filename is empty, print an error message and return
-            cerr << "Usage: <command> > <output_file>" << endl;
-            return;
-        }
-//step 2: create a child process to run the command with output redirection
-    vector<string> tokens; // vector to hold the command and its arguments
+    //lambda function to trim leading and trailing whitespace from a string
+    auto trim = [](const string &s) {
+        size_t start = s.find_first_not_of(" \t"); //find the first non-whitespace character in the string; if there is no non-whitespace character, return an empty string; otherwise, return the substring from the first non-whitespace character to the end of the string, effectively trimming leading whitespace from the input string
+        if (start == string::npos) return string(""); //find the first non-whitespace character in the string; if there is no non-whitespace character, return an empty string; otherwise, return the substring from the first non-whitespace character to the end of the string, effectively trimming leading whitespace from the input string
+        size_t end = s.find_last_not_of(" \t"); //find the last non-whitespace character in the string; if there is no non-whitespace character, return an empty string; otherwise, return the substring from the first non-whitespace character to the last non-whitespace character, effectively trimming leading and trailing whitespace from the input string
+        return s.substr(start, end - start + 1);//return the trimmed string
+    };
+
+    string cmd = trim(command.substr(0, pos)); //get the command part by taking the substring from the start of the command string to the position of '>' and trimming whitespace from both sides
+    string filename = trim(command.substr(pos + 1)); //get the command and filename by splitting the command string at the position of '>' and trimming whitespace from both sides
+
+    //check if command or filename is empty after parsing; if so, print usage message and return
+    if (cmd.empty() || filename.empty()) {
+        cerr << "Usage: <command> > <output_file>" << endl;
+        return;
+    }
+
+    //step 2: split command into tokens for execvp
+    vector<string> tokens;
     string token;
-    istringstream iss(cmd); // create a string stream from the command string
-    while(iss >> token) tokens.push_back(token); // split the command string into tokens and store them in the vector
-    
-    if(tokens.empty()) {// if there are no tokens, print an error message and return
+    istringstream iss(cmd); //use istringstream to split cmd into tokens based on whitespace
+    while (iss >> token) tokens.push_back(token); //while loop continues until there are no more tokens to read from the stream
+
+    //check if command is empty after parsing
+    if (tokens.empty()) {
         cerr << "Error: command is empty" << endl;
         return;
     }
-//step 3: in the child process, open the file to write to and redirect standard output to the file
 
-//step 4: execute the command using execvp
+    //convert list of string of character to list of char* for execvp
+    vector<char*> args;
+    for (auto &t : tokens) args.push_back((char*)t.c_str()); //cast string to char*
+    args.push_back(nullptr); //add a nullptr at the end of args to indicate the end of arguments for execvp
 
-//step 5: in the parent process, wait for the child process to finish
+    //step 3: create child process
+    pid_t pid = fork();
+    if (pid == 0) { //CHILD PROCESS
+        //step 4: open output file and map it to standard output
+        //O_TRUNC clears old content; O_CREAT creates file if missing
+        int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd < 0) { //   if open fails, print error message and exit with error code
+            perror("Error opening output file");
+            exit(1);
+        }
+        
+        if (dup2(fd, STDOUT_FILENO) < 0) { //dup2 maps fd to STDOUT_FILENO, so that when the command writes to standard output, it goes to the file instead
+            perror("Error redirecting standard output");
+            close(fd);
+            exit(1);
+        }
+        close(fd);
 
+        //step 5: run the command; it now writes to the redirected STDOUT
+        execvp(args[0], args.data());
+        perror("Error executing command");
+        exit(errno);
+
+    } else if (pid > 0) { //PARENT PROCESS
+        waitpid(pid, nullptr, 0);
+    } else {
+        cerr << "Error creating child process" << endl;
+    }
 }
