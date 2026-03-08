@@ -230,6 +230,7 @@ void runProgram(string command) {
     waitpid(pid2, NULL, 0);
 }
 
+//Damien Ehlinger - 03-08-2026 - Redirection functions part 4
 // function to handle input redirection using '<' operator in the command string
 void inputRirection(string command){
     //step 1: parse command into left side (program/args) and right side (input file)
