@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <sstream>
 #include <cstring>
+#include <cerrno>
 #include <cctype>
 #include <dirent.h>
 #include <sys/types.h>
@@ -229,139 +230,109 @@ void runProgram(string command) {
     waitpid(pid2, NULL, 0);
 }
 
-
+// function to handle input redirection using '<' operator in the command string
 void inputRirection(string command){
+    //step 1: parse command into left side (program/args) and right side (input file)
+    size_t pos = command.find('<');
+    if (pos == string::npos) { //no input redirection found
+        cerr << "Error: no input redirection found" << endl;
+        return;
+    }
 
-}
+    //lambda function to trim leading and trailing whitespace from a string
+    auto trim = [](const string &s) { //
+        size_t start = s.find_first_not_of(" \t");
+        if (start == string::npos) return string("");
+        size_t end = s.find_last_not_of(" \t");
+        return s.substr(start, end - start + 1);
+    };
 
-void outputRirection(string command) {
+    string cmd = trim(command.substr(0, pos));
+    string filename = trim(command.substr(pos + 1));
 
-}
+    if (cmd.empty() || filename.empty()) {
+        cerr << "Usage: <command> < <input_file>" << endl;
+        return;
+    }
 
-void ls(vector<string> args = {}) {
+    //step 2: split command into tokens for execvp
+    vector<string> tokens;
+    string token;
+    istringstream iss(cmd);
+    while (iss >> token) tokens.push_back(token);
 
+    if (tokens.empty()) {
+        cerr << "Error: command is empty" << endl;
+        return;
+    }
+
+    vector<char*> args;
+    for (auto &t : tokens) args.push_back((char*)t.c_str());
+    args.push_back(nullptr);
+
+    //step 3: create child process
     pid_t pid = fork();
-    if (pid == 0) {
-        vector<char*> cargs;
-        cargs.push_back((char*)"ls");
-        for (auto &arg : args)
-            cargs.push_back((char*)arg.c_str());
-        cargs.push_back(nullptr);
-        execvp("ls", cargs.data());
-        perror("execvp failed");
-        exit(1);
+    if(pid == 0) { //CHILD PROCESS
+        //step 4: open input file and map it to standard input
+        int fd = open(filename.c_str(), O_RDONLY);
+        if (fd < 0) {
+            perror("Error opening input file");
+            exit(1);
+        }
+
+        if (dup2(fd, STDIN_FILENO) < 0) {
+            perror("Error redirecting standard input");
+            close(fd);
+            exit(1);
+        }
+        close(fd);
+
+        //step 5: run the command; it now reads from the redirected STDIN
+        execvp(args[0], args.data());
+        perror("Error executing command");
+        exit(errno);
+
+    } else if (pid > 0) { //PARENT PROCESS
+        waitpid(pid, nullptr, 0);
+    } else {
+        cerr << "Error creating child process" << endl;
     }
-    else if (pid > 0) {
-        wait(nullptr);
-    }
-    else {
-        perror("fork failed");
-    }
-}
-
-
-void runProgram(string command) {
-
-    size_t pos = command.find('|');
-
-    string left = command.substr(0, pos);
-    string right = command.substr(pos + 1);
-
-    // tokenize left command
-    stringstream ss1(left);
-    vector<string> tokens1;
-    string temp;
-
-    while (ss1 >> temp)
-        tokens1.push_back(temp);
-
-    // tokenize right command
-    stringstream ss2(right);
-    vector<string> tokens2;
-
-    while (ss2 >> temp)
-        tokens2.push_back(temp);
-
-    // convert to char* arrays
-    vector<char*> args1;
-    vector<char*> args2;
-
-    for (auto &t : tokens1)
-        args1.push_back((char*)t.c_str());
-    args1.push_back(nullptr);
-
-    for (auto &t : tokens2)
-        args2.push_back((char*)t.c_str());
-    args2.push_back(nullptr);
-
-    int fd[2];
-    pipe(fd);
-
-    pid_t pid1 = fork();
-
-    if (pid1 == 0) {
-        close(fd[0]);
-        dup2(fd[1], STDOUT_FILENO);
-        close(fd[1]);
-
-        execvp(args1[0], args1.data());
-        perror("execvp failed");
-        exit(1);
-    }
-
-    waitpid(pid1, NULL, 0);
-
-    pid_t pid2 = fork();
-
-    if (pid2 == 0) {
-        close(fd[1]);
-        dup2(fd[0], STDIN_FILENO);
-        close(fd[0]);
-
-        execvp(args2[0], args2.data());
-        perror("execvp failed");
-        exit(1);
-    }
-
-    close(fd[0]);
-    close(fd[1]);
-
-    waitpid(pid2, NULL, 0);
-}
-
-//handle input redirection for command with format: command < input_file
-void inputRirection(string command){
-//step 1: parse the command to get the command to run and the file to read from
-command.erase(remove_if(command.begin(), command.end(), ::isspace), command.end());
-size_t pos = command.find('<');
-if(pos == string::npos) {
-    cerr << "Error: no input redirection found" << endl;
-    return;
-} 
-string cmd = command.substr(0, pos);
-string filename = command.substr(pos + 1);
-//step 2: create a child process to run the command with input redirection
-pid_t pid = fork();
-if(pid == 0) { //CHILD PROCESS
-} else if (pid > 0) { //PARENT PROCESS
-    wait(NULL);
-} else cerr << "Error creating child process" << endl;
-//step 3: in the child process, open the file to read from and redirect standard input to the file
-int fd = open(filename.c_str(), 0);
-dup2(fd, STDIN_FILENO);
-close(fd);
-
-//step 4: execute the command using execvp
-
 }
 
 void outputRirection(string command) {
 //step 1: parse the command to get the command to run and the file to write to
+    size_t pos = command.find('>'); // find the position of '>' in the command string
+    if (pos == string::npos){ //if '>' is not found in the comman string print an error message and return
+        cerr << "Error: no output redirection found" << endl;
+        return;}
+        auto trim = [](const string &s) { //lamda function to trim leadin and trailing whitespace from a string
+            size_t start = s.find_first_not_of(" \t");
+            if (start == string::npos) return string("");
+            size_t end = s.find_last_not_of(" \t");
+            return s.substr(start, end - start + 1);
+        };
 
+        //get the command to run and the file to write to by splitting the command string at '>' and trimming whitespace
+        string cmd = trim(command.substr(0, pos)); //get the command to run by taking the substring before '>' and trimming whitespace
+        string filename = trim(command.substr(pos + 1)); //get the file to write to by taking the substring after '>' and trimming whitespace
+        if (cmd.empty() || filename.empty()) { //if either the command or filename is empty, print an error message and return
+            cerr << "Usage: <command> > <output_file>" << endl;
+            return;
+        }
 //step 2: create a child process to run the command with output redirection
-
+    vector<string> tokens; // vector to hold the command and its arguments
+    string token;
+    istringstream iss(cmd); // create a string stream from the command string
+    while(iss >> token) tokens.push_back(token); // split the command string into tokens and store them in the vector
+    
+    if(tokens.empty()) {// if there are no tokens, print an error message and return
+        cerr << "Error: command is empty" << endl;
+        return;
+    }
 //step 3: in the child process, open the file to write to and redirect standard output to the file
 
 //step 4: execute the command using execvp
+
+//step 5: in the parent process, wait for the child process to finish
 
 }
