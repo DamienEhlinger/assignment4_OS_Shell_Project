@@ -18,8 +18,13 @@ int main() {
             cout << pwd() << endl;
         } else if (command == "clear" || command == "cls") {
             clear();
+        } else if (command == "ls") {
+            ls();
+        } else if (command.rfind("./", 0) == 0) {
+            runProgram(command);
         } else {
             runCommand(command);
         }
+        
     }
 }
