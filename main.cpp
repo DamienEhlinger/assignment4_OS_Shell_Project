@@ -20,13 +20,12 @@ int main() {
             clear();
         } else if (command == "ls") {
             ls();
-<<<<<<< HEAD
-        } else if (command.rfind("./", 0) == 0) {
-            runProgram(command);
-        } else {
-=======
-        }else {
->>>>>>> dash
+        }else if (command.find("<") != string::npos){
+            inputRedirection(command);
+        }else if (command.find(">") != string::npos){
+            outputRedirection(command);
+        }
+        else {
             runCommand(command);
         }
         

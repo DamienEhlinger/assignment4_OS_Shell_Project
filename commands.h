@@ -329,11 +329,39 @@ void runProgram(string command) {
     waitpid(pid2, NULL, 0);
 }
 
-
+//handle input redirection for command with format: command < input_file
 void inputRirection(string command){
+//step 1: parse the command to get the command to run and the file to read from
+command.erase(remove_if(command.begin(), command.end(), ::isspace), command.end());
+size_t pos = command.find('<');
+if(pos == string::npos) {
+    cerr << "Error: no input redirection found" << endl;
+    return;
+} 
+string cmd = command.substr(0, pos);
+string filename = command.substr(pos + 1);
+//step 2: create a child process to run the command with input redirection
+pid_t pid = fork();
+if(pid == 0) { //CHILD PROCESS
+} else if (pid > 0) { //PARENT PROCESS
+    wait(NULL);
+} else cerr << "Error creating child process" << endl;
+//step 3: in the child process, open the file to read from and redirect standard input to the file
+int fd = open(filename.c_str(), 0);
+dup2(fd, STDIN_FILENO);
+close(fd);
+
+//step 4: execute the command using execvp
 
 }
 
 void outputRirection(string command) {
+//step 1: parse the command to get the command to run and the file to write to
+
+//step 2: create a child process to run the command with output redirection
+
+//step 3: in the child process, open the file to write to and redirect standard output to the file
+
+//step 4: execute the command using execvp
 
 }
