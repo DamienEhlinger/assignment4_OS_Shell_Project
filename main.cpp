@@ -20,6 +20,8 @@ int main() {
             clear();
         } else if (command == "ls") {
             ls();
+        } else if (command.find("|") != string::npos) {
+            runProgram(command);
         }else if (command.find("<") != string::npos){
             inputRirection(command);
         }else if (command.find(">") != string::npos){
