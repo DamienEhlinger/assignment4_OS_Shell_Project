@@ -224,3 +224,12 @@ void runProgram(string command) {
 
     waitpid(pid2, NULL, 0);
 }
+
+
+void inputRirection(string command){
+
+}
+
+void outputRirection(string command) {
+
+}
