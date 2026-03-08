@@ -20,7 +20,9 @@ int main() {
             clear();
         } else if (command == "ls") {
             ls();
-        }else {
+        } else if (command.rfind("./", 0) == 0) {
+            runProgram(command);
+        } else {
             runCommand(command);
         }
         
