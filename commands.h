@@ -155,17 +155,6 @@ void ls(vector<string> args = {}) {
     }
 }
 
-vector<string> split(const string& line) {
-    vector<string> tokens;
-    stringstream ss(line);
-    string word;
-
-    while (ss >> word) {
-        tokens.push_back(word);
-    }
-
-    return tokens;
-}
 
 void runProgram(string command) {
 
