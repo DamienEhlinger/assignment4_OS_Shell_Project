@@ -111,6 +111,7 @@ void runCommand(string command) {
     for (size_t i = 0; i < tokens.size(); ++i) {
         args[i] = (char*) tokens[i].c_str();
     }
+    
     //add a nullptr at the end of args to indicate the end of arguments for execvp
     args[tokens.size()] = nullptr;
 
