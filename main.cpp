@@ -9,17 +9,19 @@ int main() {
         //get user input as command string
         getline(cin, command);
 
+        if (command.empty()) {
+            continue; // skip empty commands
+        }
+
         //add command to history
         addToHist(command);
         if (command == "exit") exit(0);
-        if (command == "history") {
-            printHist();
-        } else if (command == "pwd") {
-            cout << pwd() << endl;
-        } else if (command == "clear" || command == "cls") {
+        else if (command == "clear" || command == "cls") {
             clear();
         } else {
-            runCommand(command);
+           vector<string> subCommands = splitCommandbyPipe(command);
+           runPipeLine(subCommands);
         }
+        
     }
 }
