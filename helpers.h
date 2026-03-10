@@ -56,3 +56,21 @@ vector<char *> buildArgs(const vector<string> tokens)
     args.push_back(nullptr);
     return args;
 }
+
+/**
+ * Split pipe command into subcommands string
+ * @author Simon Cao - 03/09/2026
+ * @param command the command string to split
+ * @return a vector of strings representing the subcommands split by pipe operator
+ */
+vector<string> splitCommandbyPipe(const string &command)
+{
+    vector<string> subCommands;
+    stringstream ss(command);
+    string part;
+    while (getline(ss, part, '|'))
+    {
+        subCommands.push_back(part);
+    }
+    return subCommands;
+}

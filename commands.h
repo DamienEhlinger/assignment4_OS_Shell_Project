@@ -16,24 +16,6 @@
 using namespace std;
 
 /**
- * Split pipe command into subcommands
- * @author Simon Cao - 03/09/2026
- * @param command the command string to split
- * @return a vector of strings representing the subcommands split by pipe operator
- */
-vector<string> splitPipeCommand(const string &command)
-{
-    vector<string> parts;
-    stringstream ss(command);
-    string subcommand;
-    while (getline(ss, subcommand, '|'))
-    {
-        parts.push_back(subcommand);
-    }
-    return parts;
-}
-
-/**
  * return the current working directory path as a string
  * if there is an error, throw a runtime_error on failed to get current working directory
  * @author Simon Cao - 03/06/2026
@@ -163,24 +145,6 @@ void clear()
     //'\033[2J' clears the screen, '\033[1;1H' moves the cursor to the top-left corner.
     // These are ANSI escape codes
     cout << "\033[2J\033[1;1H";
-}
-
-/**
- * Split pipe command into subcommands string
- * @author Simon Cao - 03/09/2026
- * @param command the command string to split
- * @return a vector of strings representing the subcommands split by pipe operator
- */
-vector<string> splitCommandbyPipe(const string &command)
-{
-    vector<string> subCommands;
-    stringstream ss(command);
-    string part;
-    while (getline(ss, part, '|'))
-    {
-        subCommands.push_back(part);
-    }
-    return subCommands;
 }
 
 /**
