@@ -1,2 +1,9 @@
-history.txt
 main
+*.txt
+*.out
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*.DS_Store

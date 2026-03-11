@@ -1,4 +1,0 @@
-zebra
-apple
-mango
-pear

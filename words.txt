@@ -1,2 +1,0 @@
-hello world from shell project
-this is a test file
