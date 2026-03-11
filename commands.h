@@ -301,7 +301,7 @@ void runCommand(string command)
     string trimmedCommand = trim(command);
     vector<string> tokens = tokenize(trimmedCommand);
     vector<char *> args = buildArgs(tokens);
-
+ 
     if (trimmedCommand == "exit" || trimmedCommand.empty())
     {
         exit(0);
@@ -329,6 +329,9 @@ void runCommand(string command)
     else
     {
         execvp(args[0], args.data());
+        //print command name and error message if execvp fails, then exit with the error code
+        //convert args[0] from char* to string for printing
+        cerr << "Error executing command: " << string(args[0]) << endl;
         perror("Error executing command");
         exit(errno);
     }

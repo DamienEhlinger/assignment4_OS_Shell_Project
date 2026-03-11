@@ -64,7 +64,7 @@ string trim(const string &s)
  * @param command the command string to parse
  * @return a vector of char* representing the command and its arguments
  */
-vector<char *> buildArgs(const vector<string> tokens)
+vector<char *> buildArgs(const vector<string>& tokens)
 {
     vector<char *> args;
     int i = 0;
