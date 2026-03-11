@@ -37,6 +37,7 @@ string pwd()
  * add user's command to history
  * if cannot access history.txt file, print an error message
  * @author Simon Cao - 03/06/2026
+ * @author Damian Ehlinger - 03/08/2026
  * @param command the command to add to history
  */
 void addToHist(string command)
@@ -61,8 +62,7 @@ void addToHist(string command)
 
         // open history.txt file
         int fd = open("history.txt", O_WRONLY | O_CREAT | O_APPEND, 0644);
-        if (fd < 0)
-            cerr << "Error opening history file" << endl;
+        if (fd < 0) cerr << "Error opening history file" << endl;
         else
         {
 
@@ -234,8 +234,8 @@ void outputRedirection(string command)
     }
 
     string cmd = trim(command.substr(0, pos));       // get the command part by taking the substring from the start of the command string to the position of '>' and trimming whitespace from both sides
-    string filename = trim(command.substr(pos + (append ? 2 : 1))); // get the command and filename by splitting the command string at the position of '>' and trimming whitespace from both sides
-
+    string filename = trim(command.substr(pos + (append ? 2 : 1))); // get the filename part by taking the substring from the position after '>' to the end of the command string and trimming whitespace from both sides
+    
     // check if command or filename is empty after parsing; if so, print usage message and return
     if (cmd.empty() || filename.empty())
     {
@@ -396,6 +396,7 @@ void runPipeLine(vector<string> subCommands)
             }
 
             runCommand(subCommands[i]); // execute the command;
+            exit(0);
         }
         else if (pid < 0)
         {
@@ -415,6 +416,4 @@ void runPipeLine(vector<string> subCommands)
     {
         wait(NULL);
     }
-    fflush(stdout);
-    fflush(stdin);
 }

@@ -14,14 +14,33 @@ using namespace std;
  */
 vector<string> tokenize(const string &command)
 {
+    bool inQuotes = false; // flag to track if we are inside quotes
     vector<string> tokens;
-    string token;
-    istringstream iss(command);
-    while (iss >> token)
-        tokens.push_back(token);
+    string currentToken;
+    for (size_t i = 0; i < command.length(); ++i)
+    {
+        char c = command[i];
+        if (c == '"')
+            inQuotes = !inQuotes;
+        else if (isspace(c) && !inQuotes)
+        {
+            if (!currentToken.empty())
+            {
+                tokens.push_back(currentToken);
+                currentToken.clear();
+            }
+        }
+        else
+        {
+            currentToken += c;
+        }
+    }
+    if (!currentToken.empty())
+    {
+        tokens.push_back(currentToken);
+    }
     return tokens;
 }
-
 
 /**
  * Trim leading and trailing whitespace from a string
@@ -49,7 +68,7 @@ vector<char *> buildArgs(const vector<string> tokens)
 {
     vector<char *> args;
     int i = 0;
-    for (const auto &token : tokens)
+    for (const string &token : tokens)
     {
         args.push_back((char *)token.c_str());
     }
