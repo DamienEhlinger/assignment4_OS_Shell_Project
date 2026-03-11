@@ -8,6 +8,7 @@ int main() {
 
         //get user input as command string
         getline(cin, command);
+        command = trim(command);
 
         if (command.empty()) {
             continue; // skip empty commands
