@@ -1,3 +1,7 @@
+/**
+ * Group Members: Simon Cao, Damien Ehlinger, Dashiel Padget
+ * Date: 03/09/2026
+ */
 #include <iostream> 
 #include "commands.h"
 
